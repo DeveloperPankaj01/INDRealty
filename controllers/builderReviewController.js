@@ -1,3 +1,141 @@
+// const BuilderReview = require("../models/BuilderReview");
+// const { v4: uuidv4 } = require("uuid");
+// const User = require("../models/User");
+// const slugify = require("slugify");
+
+// // Helper function to generate SEO data
+// const generateSeoData = (builderReviewData, existingSlug = null) => {
+//   const seo = builderReviewData.seo || {};
+//   const slug =
+//     seo.slug ||
+//     existingSlug ||
+//     slugify(builderReviewData.title, {
+//       lower: true,
+//       strict: true,
+//       remove: /[*+~.()'"!:@]/g,
+//     });
+
+//   // Generate keywords from BuilderReview data
+//   const baseKeywords = [
+//     "builder review",
+//     "real estate builder",
+//     "construction company review",
+//     "builder ratings",
+//   ];
+//   const locationKeywords = (builderReviewData.locations || []).map(
+//     (loc) => `builder review in ${loc}`
+//   );
+//   const builderKeywords = [`${builderReviewData.builderName} review`];
+//   const categoryKeywords = (builderReviewData.categories || []).map(
+//     (cat) => `${cat} builder review`
+//   );
+//   const keywords =
+//     seo.keywords && seo.keywords.length > 0
+//       ? seo.keywords
+//       : [...new Set([...baseKeywords, ...locationKeywords, ...builderKeywords, ...categoryKeywords])];
+
+//   // Structured data for rich snippets
+//   const structuredData = {
+//     "@context": "https://schema.org",
+//     "@type": "Review",
+//     itemReviewed: {
+//       "@type": "Organization",
+//       name: builderReviewData.builderName
+//     },
+//     reviewRating: {
+//       "@type": "Rating",
+//       ratingValue: builderReviewData.rating,
+//       bestRating: "5"
+//     },
+//     author: {
+//       "@type": "Organization",
+//       name: "IndRealty",
+//     },
+//     headline: builderReviewData.title,
+//     description: builderReviewData.summary,
+//     image: builderReviewData.imageUrl,
+//     url: seo.canonicalUrl || `https://www.indrealty.org/builder-review/${slug}`,
+//     datePublished: new Date().toISOString(),
+//     dateModified: new Date().toISOString(),
+//   };
+
+//   return {
+//     metaTitle:
+//       seo.metaTitle || builderReviewData.metaTitle || `${builderReviewData.builderName} Review | ${builderReviewData.title} | IndRealty`,
+//     metaDescription:
+//       seo.metaDescription || builderReviewData.metaDescription || `${builderReviewData.summary}`,
+//     slug,
+//     keywords,
+//     ogTitle: seo.ogTitle || builderReviewData.ogTitle || builderReviewData.title,
+//     ogDescription: seo.ogDescription || builderReviewData.ogDescription || builderReviewData.summary,
+//     ogImage: seo.ogImage || builderReviewData.ogImage || builderReviewData.imageUrl,
+//     twitterCard: seo.twitterCard || "summary_large_image",
+//     canonicalUrl: seo.canonicalUrl || builderReviewData.canonicalUrl || `https://www.indrealty.org/builder-review/${slug}`,
+//     structuredData,
+//   };
+// };
+
+// // Create a new builder review
+// const createBuilderReview = async (req, res) => {
+//   try {
+//     const user = await User.findOne({ username: req.body.author });
+//     if (!user || !user.isAdmin) {
+//       return res.status(403).json({ error: "Admin access required" });
+//     }
+
+//     // Handle both file upload and direct URL
+//     let imageUrl;
+//     if (req.file) {
+//       imageUrl = `/public/uploads/${req.file.filename}`;
+//     } else if (req.body.imageUrl) {
+//       imageUrl = req.body.imageUrl;
+//     } else {
+//       return res.status(400).json({ error: "Either image file or imageUrl is required" });
+//     }
+
+//     const seoData = generateSeoData(req.body);
+
+//     const newBuilderReview = new BuilderReview({
+//       pid: uuidv4(),
+//       author: user._id,
+//       builderName: req.body.builderName,
+//       title: req.body.title,
+//       summary: req.body.summary,
+//       description: req.body.description,
+//       imageUrl,
+//       rating: req.body.rating,
+//       categoryRatings: req.body.categoryRatings || {},
+//       locations: Array.isArray(req.body.locations) ? req.body.locations : [req.body.locations],
+//       categories: Array.isArray(req.body.categories) ? req.body.categories : [req.body.categories],
+//       seo: seoData,
+//     });
+
+//     await newBuilderReview.save();
+
+//     res.status(201).json({
+//       success: true,
+//       message: "Builder review created successfully",
+//       builderReview: newBuilderReview,
+//     });
+//   } catch (error) {
+//     if (error.code === 11000) {
+//       if (error.keyPattern["seo.slug"]) {
+//         return res.status(400).json({
+//           success: false,
+//           error: "Slug already exists. Please modify the title or provide a custom slug.",
+//         });
+//       }
+//       if (error.keyPattern.pid) {
+//         return res.status(400).json({
+//           success: false,
+//           error: "Duplicate BuilderReview ID. Please try again.",
+//         });
+//       }
+//     }
+//     res.status(400).json({ success: false, error: error.message });
+//   }
+// };
+
 const BuilderReview = require("../models/BuilderReview");
 const { v4: uuidv4 } = require("uuid");
 const User = require("../models/User");
@@ -86,7 +224,7 @@ const createBuilderReview = async (req, res) => {
     // Handle both file upload and direct URL
     let imageUrl;
     if (req.file) {
-      imageUrl = `/public/uploads/${req.file.filename}`;
+      imageUrl = req.file.path; // Cloudinary URL
     } else if (req.body.imageUrl) {
       imageUrl = req.body.imageUrl;
     } else {

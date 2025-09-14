@@ -1,7 +1,131 @@
 // controllers/propertyController.js
+// const Property = require("../models/Property");
+// const { v4: uuidv4 } = require("uuid"); // Import uuid
+// const User = require("../models/User"); // Import the User model
+// const slugify = require("slugify");
+
+// // Helper function to generate SEO data
+// const generateSeoData = (propertyData, existingSlug = null) => {
+//   const seo = propertyData.seo || {};
+//   const slug =
+//     seo.slug ||
+//     existingSlug ||
+//     slugify(propertyData.title, {
+//       lower: true,
+//       strict: true,
+//       remove: /[*+~.()'"!:@]/g,
+//     });
+
+//   // Generate keywords from Property data
+//   const baseKeywords = [
+//     "real estate news",
+//     "property updates",
+//     "India real estate",
+//   ];
+//   const locationKeywords = (propertyData.locations || []).map(
+//     (loc) => `real estate news in ${loc}`
+//   );
+//   const categoryKeywords = (propertyData.categories || []).map(
+//     (cat) => `${cat} updates`
+//   );
+//   const keywords =
+//     seo.keywords && seo.keywords.length > 0
+//       ? seo.keywords
+//       : [...new Set([...baseKeywords, ...locationKeywords, ...categoryKeywords])];
+
+//   // Structured data for rich snippets
+//   const structuredData = {
+//     "@context": "https://schema.org",
+//     "@type": "NewsArticle",
+//     headline: propertyData.title,
+//     description: propertyData.summary,
+//     image: propertyData.imageUrl,
+//     url: seo.canonicalUrl || `https://www.indrealty.org/properties/${slug}`,
+//     datePublished: new Date().toISOString(),
+//     dateModified: new Date().toISOString(),
+//     author: {
+//       "@type": "Organization",
+//       name: "IndRealty",
+//     },
+//   };
+
+//   return {
+//     metaTitle:
+//       seo.metaTitle || propertyData.metaTitle || `${propertyData.title} | Latest Updates | IndRealty`,
+//     metaDescription:
+//       seo.metaDescription || propertyData.metaDescription || `${propertyData.summary}`,
+//     slug,
+//     keywords,
+//     ogTitle: seo.ogTitle || propertyData.ogTitle || propertyData.title,
+//     ogDescription: seo.ogDescription || propertyData.ogDescription || propertyData.summary,
+//     ogImage: seo.ogImage || propertyData.ogImage || propertyData.imageUrl,
+//     twitterCard: seo.twitterCard || "summary_large_image",
+//     canonicalUrl: seo.canonicalUrl || propertyData.canonicalUrl || `https://www.indrealty.org/properties/${slug}`,
+//     structuredData,
+//   };
+// };
+
+// // Create a new property listing
+// const createProperty = async (req, res) => {
+//   try {
+//     const user = await User.findOne({ username: req.body.author });
+//     if (!user || !user.isAdmin) {
+//       return res.status(403).json({ error: "Admin access required" });
+//     }
+
+//     // Handle both file upload and direct URL
+//     let imageUrl;
+//     if (req.file) {
+//       imageUrl = `/public/uploads/${req.file.filename}`;
+//     } else if (req.body.imageUrl) {
+//       imageUrl = req.body.imageUrl;
+//     } else {
+//       return res.status(400).json({ error: "Either image file or imageUrl is required" });
+//     }
+
+//     const seoData = generateSeoData(req.body);
+
+//     const newProperty = new Property({
+//       pid: uuidv4(),
+//       author: user._id,
+//       title: req.body.title,
+//       summary: req.body.summary,
+//       description: req.body.description,
+//       imageUrl,
+//       locations: Array.isArray(req.body.locations) ? req.body.locations : [req.body.locations],
+//       categories: Array.isArray(req.body.categories) ? req.body.categories : [req.body.categories],
+//       seo: seoData,
+//     });
+
+//     await newProperty.save();
+
+//     res.status(201).json({
+//       success: true,
+//       message: "Property created successfully",
+//       property: newProperty,
+//     });
+//   } catch (error) {
+//     if (error.code === 11000) {
+//       if (error.keyPattern["seo.slug"]) {
+//         return res.status(400).json({
+//           success: false,
+//           error: "Slug already exists. Please modify the title or provide a custom slug.",
+//         });
+//       }
+//       if (error.keyPattern.pid) {
+//         return res.status(400).json({
+//           success: false,
+//           error: "Duplicate Property ID. Please try again.",
+//         });
+//       }
+//     }
+//     res.status(400).json({ success: false, error: error.message });
+//   }
+// };
+
 const Property = require("../models/Property");
-const { v4: uuidv4 } = require("uuid"); // Import uuid
-const User = require("../models/User"); // Import the User model
+const { v4: uuidv4 } = require("uuid");
+const User = require("../models/User");
 const slugify = require("slugify");
 
 // Helper function to generate SEO data
@@ -65,52 +189,7 @@ const generateSeoData = (propertyData, existingSlug = null) => {
   };
 };
 
-
-// Create a new property listing with SEO data
-// const createProperty = async (req, res) => {
-//   try {
-//     const user = await User.findOne({ username: req.body.author });
-//     if (!user || !user.isAdmin) {
-//       return res.status(403).json({ error: "Admin access required" });
-//     }
-
-//     const seoData = generateSeoData(req.body);
-
-//     const { author, ...propertyData } = req.body; // destructure to exclude author
-
-//     const newProperty = new Property({
-//       pid: uuidv4(),
-//       author: user._id,
-//       ...propertyData,
-//       seo: seoData,
-//     });
-
-//     await newProperty.save();
-
-//     res.status(201).json({
-//       success: true,
-//       message: "Property created successfully",
-//       property: newProperty,
-//     });
-//   } catch (error) {
-//     if (error.code === 11000) {
-//       if (error.keyPattern["seo.slug"]) {
-//         return res.status(400).json({
-//           success: false,
-//           error:
-//             "Slug already exists. Please modify the title or provide a custom slug.",
-//         });
-//       }
-//       if (error.keyPattern.pid) {
-//         return res.status(400).json({
-//           success: false,
-//           error: "Duplicate WhatsNew ID. Please try again.",
-//         });
-//       }
-//     }
-//     res.status(400).json({ success: false, error: error.message });
-//   }
-// };
+// Create a new property listing
 const createProperty = async (req, res) => {
   try {
     const user = await User.findOne({ username: req.body.author });
@@ -121,7 +200,7 @@ const createProperty = async (req, res) => {
     // Handle both file upload and direct URL
     let imageUrl;
     if (req.file) {
-      imageUrl = `/public/uploads/${req.file.filename}`;
+      imageUrl = req.file.path; // Cloudinary URL
     } else if (req.body.imageUrl) {
       imageUrl = req.body.imageUrl;
     } else {

@@ -17,10 +17,10 @@ const compression = require("compression");
 const upload = require("./config/multer");
 
 // Ensure upload directory exists
-const uploadDir = path.join(__dirname, "public/uploads");
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
+// const uploadDir = path.join(__dirname, "public/uploads");
+// if (!fs.existsSync(uploadDir)) {
+//   fs.mkdirSync(uploadDir, { recursive: true });
+// }
 
 const app = express();
 const port = process.env.PORT || 8000;
@@ -87,13 +87,33 @@ app.post("/api/upload", upload.single("image"), (req, res) => {
     return res.status(400).json({ error: "No file uploaded" });
   }
   // Construct the correct URL
-  const imageUrl = `${req.protocol}://${req.get("host")}/public/uploads/${
-    req.file.filename
-  }`;
+  // const imageUrl = `${req.protocol}://${req.get("host")}/public/uploads/${
+  //   req.file.filename
+  // }`;
+  // Cloudinary returns the URL in req.file.path
+  const imageUrl = req.file.path;
 
   res.json({
     success: true,
     imageUrl,
+  });
+});
+
+// Error handling middleware for file uploads
+app.use((error, req, res, next) => {
+  if (error instanceof multer.MulterError) {
+    if (error.code === 'LIMIT_FILE_SIZE') {
+      return res.status(400).json({
+        success: false,
+        error: 'File size too large. Maximum size is 1MB.'
+      });
+    }
+  }
+  
+  // Handle other errors
+  res.status(500).json({
+    success: false,
+    error: error.message
   });
 });
 

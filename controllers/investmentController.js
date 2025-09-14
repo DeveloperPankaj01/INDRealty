@@ -1,7 +1,130 @@
 // controllers/investmentController.js
+// const Investment = require("../models/Investment");
+// const User = require("../models/User"); // Import the User model
+// const { v4: uuidv4 } = require("uuid"); // Import uuid
+// const slugify = require("slugify");
+
+// // Helper function to generate SEO data
+// const generateSeoData = (investmentData, existingSlug = null) => {
+//   const seo = investmentData.seo || {};
+//   const slug =
+//     seo.slug ||
+//     existingSlug ||
+//     slugify(investmentData.title, {
+//       lower: true,
+//       strict: true,
+//       remove: /[*+~.()'"!:@]/g,
+//     });
+
+//   // Generate keywords from investment data
+//   const baseKeywords = [
+//     "real estate investment",
+//     "property investment",
+//     "India investment",
+//   ];
+//   const locationKeywords = (investmentData.locations || []).map(
+//     (loc) => `investment in ${loc}`
+//   );
+//   const categoryKeywords = (investmentData.categories || []).map(
+//     (cat) => `${cat} investment`
+//   );
+//   const keywords =
+//     seo.keywords && seo.keywords.length > 0
+//       ? seo.keywords
+//       : [...new Set([...baseKeywords, ...locationKeywords, ...categoryKeywords])];
+
+//   // Structured data for rich snippets
+//   const structuredData = {
+//     "@context": "https://schema.org",
+//     "@type": "InvestmentOrDeposit",
+//     name: investmentData.title,
+//     description: investmentData.summary,
+//     image: investmentData.imageUrl,
+//     url: seo.canonicalUrl || `https://www.indrealty.org/investment/${slug}`,
+//     investmentType: (investmentData.categories || []).join(", "),
+//     areaServed: (investmentData.locations || []).join(", "),
+//     offers: {
+//       "@type": "Offer",
+//       category: "RealEstateInvestment",
+//     },
+//   };
+
+//   return {
+//     metaTitle:
+//       seo.metaTitle || investmentData.metaTitle || `${investmentData.title} | Investment Opportunity | IndRealty`,
+//     metaDescription:
+//       seo.metaDescription || investmentData.metaDescription || `${investmentData.summary}`,
+//     slug,
+//     keywords,
+//     ogTitle: seo.ogTitle || investmentData.ogTitle || investmentData.title,
+//     ogDescription: seo.ogDescription || investmentData.ogDescription || investmentData.summary,
+//     ogImage: seo.ogImage || investmentData.ogImage || investmentData.imageUrl,
+//     twitterCard: seo.twitterCard || "summary_large_image",
+//     canonicalUrl: seo.canonicalUrl || investmentData.canonicalUrl || `https://www.indrealty.org/investment/${slug}`,
+//     structuredData,
+//   };
+// };
+
+// // Create a new investment listing
+// const createInvestment = async (req, res) => {
+//   try {
+//     const user = await User.findOne({ username: req.body.author });
+//     if (!user || !user.isAdmin) {
+//       return res.status(403).json({ error: "Admin access required" });
+//     }
+
+//     // Handle both file upload and direct URL
+//     let imageUrl;
+//     if (req.file) {
+//       imageUrl = `/public/uploads/${req.file.filename}`;
+//     } else if (req.body.imageUrl) {
+//       imageUrl = req.body.imageUrl;
+//     } else {
+//       return res.status(400).json({ error: "Either image file or imageUrl is required" });
+//     }
+
+//     const seoData = generateSeoData(req.body);
+
+//     const newInvestment = new Investment({
+//       pid: uuidv4(),
+//       author: user._id,
+//       title: req.body.title,
+//       summary: req.body.summary,
+//       description: req.body.description,
+//       imageUrl,
+//       locations: Array.isArray(req.body.locations) ? req.body.locations : [req.body.locations],
+//       categories: Array.isArray(req.body.categories) ? req.body.categories : [req.body.categories],
+//       seo: seoData,
+//     });
+
+//     await newInvestment.save();
+
+//     res.status(201).json({
+//       success: true,
+//       message: "Investment created successfully",
+//       investment: newInvestment,
+//     });
+//   } catch (error) {
+//     if (error.code === 11000) {
+//       if (error.keyPattern["seo.slug"]) {
+//         return res.status(400).json({
+//           success: false,
+//           error: "Slug already exists. Please modify the title or provide a custom slug.",
+//         });
+//       }
+//       if (error.keyPattern.pid) {
+//         return res.status(400).json({
+//           success: false,
+//           error: "Duplicate investment ID. Please try again.",
+//         });
+//       }
+//     }
+//     res.status(400).json({ success: false, error: error.message });
+//   }
+// };
 const Investment = require("../models/Investment");
-const User = require("../models/User"); // Import the User model
-const { v4: uuidv4 } = require("uuid"); // Import uuid
+const User = require("../models/User");
+const { v4: uuidv4 } = require("uuid");
 const slugify = require("slugify");
 
 // Helper function to generate SEO data
@@ -66,54 +189,6 @@ const generateSeoData = (investmentData, existingSlug = null) => {
 };
 
 // Create a new investment listing
-// const createInvestment = async (req, res) => {
-//   try {
-//     const user = await User.findOne({ username: req.body.author });
-//     if (!user || !user.isAdmin) {
-//       return res.status(403).json({ error: "Admin access required" });
-//     }
-
-//     const seoData = generateSeoData(req.body);
-
-//     const { author, ...investmentData } = req.body; // destructure to exclude author
-
-//     const newInvestment = new Investment({
-//       pid: uuidv4(),
-//       author: user._id,
-//       ...investmentData,
-//       seo: seoData,
-//     });
-
-//     await newInvestment.save();
-
-//     res.status(201).json({
-//       success: true,
-//       message: "Investment created successfully",
-//       investment: newInvestment,
-//     });
-//   } catch (error) {
-//     if (error.code === 11000) {
-//       if (error.keyPattern["seo.slug"]) {
-//         return res.status(400).json({
-//           success: false,
-//           error:
-//             "Slug already exists. Please modify the title or provide a custom slug.",
-//         });
-//       }
-//       if (error.keyPattern.pid) {
-//         return res.status(400).json({
-//           success: false,
-//           error: "Duplicate investment ID. Please try again.",
-//         });
-//       }
-//     }
-
-//     res.status(400).json({
-//       success: false,
-//       error: error.message,
-//     });
-//   }
-// };
 const createInvestment = async (req, res) => {
   try {
     const user = await User.findOne({ username: req.body.author });
@@ -124,7 +199,7 @@ const createInvestment = async (req, res) => {
     // Handle both file upload and direct URL
     let imageUrl;
     if (req.file) {
-      imageUrl = `/public/uploads/${req.file.filename}`;
+      imageUrl = req.file.path; // Cloudinary URL
     } else if (req.body.imageUrl) {
       imageUrl = req.body.imageUrl;
     } else {
