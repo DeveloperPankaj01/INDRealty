@@ -1,128 +1,4 @@
 // controllers/propertyController.js
-// const Property = require("../models/Property");
-// const { v4: uuidv4 } = require("uuid"); // Import uuid
-// const User = require("../models/User"); // Import the User model
-// const slugify = require("slugify");
-
-// // Helper function to generate SEO data
-// const generateSeoData = (propertyData, existingSlug = null) => {
-//   const seo = propertyData.seo || {};
-//   const slug =
-//     seo.slug ||
-//     existingSlug ||
-//     slugify(propertyData.title, {
-//       lower: true,
-//       strict: true,
-//       remove: /[*+~.()'"!:@]/g,
-//     });
-
-//   // Generate keywords from Property data
-//   const baseKeywords = [
-//     "real estate news",
-//     "property updates",
-//     "India real estate",
-//   ];
-//   const locationKeywords = (propertyData.locations || []).map(
-//     (loc) => `real estate news in ${loc}`
-//   );
-//   const categoryKeywords = (propertyData.categories || []).map(
-//     (cat) => `${cat} updates`
-//   );
-//   const keywords =
-//     seo.keywords && seo.keywords.length > 0
-//       ? seo.keywords
-//       : [...new Set([...baseKeywords, ...locationKeywords, ...categoryKeywords])];
-
-//   // Structured data for rich snippets
-//   const structuredData = {
-//     "@context": "https://schema.org",
-//     "@type": "NewsArticle",
-//     headline: propertyData.title,
-//     description: propertyData.summary,
-//     image: propertyData.imageUrl,
-//     url: seo.canonicalUrl || `https://www.indrealty.org/properties/${slug}`,
-//     datePublished: new Date().toISOString(),
-//     dateModified: new Date().toISOString(),
-//     author: {
-//       "@type": "Organization",
-//       name: "IndRealty",
-//     },
-//   };
-
-//   return {
-//     metaTitle:
-//       seo.metaTitle || propertyData.metaTitle || `${propertyData.title} | Latest Updates | IndRealty`,
-//     metaDescription:
-//       seo.metaDescription || propertyData.metaDescription || `${propertyData.summary}`,
-//     slug,
-//     keywords,
-//     ogTitle: seo.ogTitle || propertyData.ogTitle || propertyData.title,
-//     ogDescription: seo.ogDescription || propertyData.ogDescription || propertyData.summary,
-//     ogImage: seo.ogImage || propertyData.ogImage || propertyData.imageUrl,
-//     twitterCard: seo.twitterCard || "summary_large_image",
-//     canonicalUrl: seo.canonicalUrl || propertyData.canonicalUrl || `https://www.indrealty.org/properties/${slug}`,
-//     structuredData,
-//   };
-// };
-
-// // Create a new property listing
-// const createProperty = async (req, res) => {
-//   try {
-//     const user = await User.findOne({ username: req.body.author });
-//     if (!user || !user.isAdmin) {
-//       return res.status(403).json({ error: "Admin access required" });
-//     }
-
-//     // Handle both file upload and direct URL
-//     let imageUrl;
-//     if (req.file) {
-//       imageUrl = `/public/uploads/${req.file.filename}`;
-//     } else if (req.body.imageUrl) {
-//       imageUrl = req.body.imageUrl;
-//     } else {
-//       return res.status(400).json({ error: "Either image file or imageUrl is required" });
-//     }
-
-//     const seoData = generateSeoData(req.body);
-
-//     const newProperty = new Property({
-//       pid: uuidv4(),
-//       author: user._id,
-//       title: req.body.title,
-//       summary: req.body.summary,
-//       description: req.body.description,
-//       imageUrl,
-//       locations: Array.isArray(req.body.locations) ? req.body.locations : [req.body.locations],
-//       categories: Array.isArray(req.body.categories) ? req.body.categories : [req.body.categories],
-//       seo: seoData,
-//     });
-
-//     await newProperty.save();
-
-//     res.status(201).json({
-//       success: true,
-//       message: "Property created successfully",
-//       property: newProperty,
-//     });
-//   } catch (error) {
-//     if (error.code === 11000) {
-//       if (error.keyPattern["seo.slug"]) {
-//         return res.status(400).json({
-//           success: false,
-//           error: "Slug already exists. Please modify the title or provide a custom slug.",
-//         });
-//       }
-//       if (error.keyPattern.pid) {
-//         return res.status(400).json({
-//           success: false,
-//           error: "Duplicate Property ID. Please try again.",
-//         });
-//       }
-//     }
-//     res.status(400).json({ success: false, error: error.message });
-//   }
-// };
-
 const Property = require("../models/Property");
 const { v4: uuidv4 } = require("uuid");
 const User = require("../models/User");
@@ -320,6 +196,67 @@ const updatePropertySeo = async (req, res) => {
   }
 };
 
+// const getAllProperties = async (req, res) => {
+//   try {
+//     const {
+//       isTopProperty,
+//       page = 1,
+//       limit = 4,
+//       category,
+//       location
+//     } = req.query;
+
+//     // Build lean query with only necessary fields
+//     const query = Property.find()
+//       .select('title imageUrl createdAt seo.slug locations categories description')
+//       .lean();
+
+//     // Apply filters
+//     if (isTopProperty) query.where('isTopProperty').equals(true);
+//     if (category && category !== 'all') query.where('categories').equals(category);
+//     if (location) query.where('locations').equals(location);
+
+//     // Pagination options
+//     const options = {
+//       page: parseInt(page, 10),
+//       limit: parseInt(limit, 10),
+//       sort: { createdAt: -1 }
+//     };
+
+//     // Execute paginated query
+//     const properties = await Property.paginate(query, options);
+
+//     // Optimize response
+//     const response = {
+//       success: true,
+//       properties: properties.docs.map(doc => ({
+//         _id: doc._id,
+//         title: doc.title,
+//         imageUrl: doc.imageUrl,
+//         createdAt: doc.createdAt,
+//         seo: { slug: doc.seo.slug },
+//         locations: Array.isArray(doc.locations) ? doc.locations : [doc.locations].filter(Boolean),
+//         categories: Array.isArray(doc.categories) ? doc.categories : [doc.categories].filter(Boolean),
+//         description: doc.description
+//       })),
+//       pagination: {
+//         total: properties.totalDocs,
+//         pages: properties.totalPages,
+//         page: properties.page,
+//         hasNext: properties.hasNextPage
+//       }
+//     };
+
+//     res.status(200).json(response);
+//   } catch (error) {
+//     console.error('Error fetching properties:', error);
+//     res.status(500).json({
+//       success: false,
+//       error: 'Failed to fetch properties. Please try again later.'
+//     });
+//   }
+// };
+
 const getAllProperties = async (req, res) => {
   try {
     const {
@@ -327,7 +264,8 @@ const getAllProperties = async (req, res) => {
       page = 1,
       limit = 4,
       category,
-      location
+      location,
+      search // Add search parameter
     } = req.query;
 
     // Build lean query with only necessary fields
@@ -339,6 +277,23 @@ const getAllProperties = async (req, res) => {
     if (isTopProperty) query.where('isTopProperty').equals(true);
     if (category && category !== 'all') query.where('categories').equals(category);
     if (location) query.where('locations').equals(location);
+    
+    // Add search functionality
+    if (search) {
+      const searchRegex = new RegExp(search, 'i');
+      query.where({
+        $or: [
+          { title: { $regex: searchRegex } },
+          { summary: { $regex: searchRegex } },
+          { description: { $regex: searchRegex } },
+          { 'seo.metaTitle': { $regex: searchRegex } },
+          { 'seo.metaDescription': { $regex: searchRegex } },
+          { 'seo.keywords': { $regex: searchRegex } },
+          { locations: { $regex: searchRegex } },
+          { categories: { $regex: searchRegex } }
+        ]
+      });
+    }
 
     // Pagination options
     const options = {

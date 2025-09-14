@@ -1,129 +1,4 @@
 // controllers/whatsNewController.js
-// const WhatsNew = require("../models/WhatsNew");
-// const { v4: uuidv4 } = require("uuid"); // Import uuid
-// const User = require("../models/User"); // Import the User model
-// const { isAdmin } = require("../middleware/authMiddleware");
-// const slugify = require("slugify");
-
-// // Helper function to generate SEO data
-// const generateSeoData = (whatsNewData, existingSlug = null) => {
-//   const seo = whatsNewData.seo || {};
-//   const slug =
-//     seo.slug ||
-//     existingSlug ||
-//     slugify(whatsNewData.title, {
-//       lower: true,
-//       strict: true,
-//       remove: /[*+~.()'"!:@]/g,
-//     });
-
-//   // Generate keywords from WhatsNew data
-//   const baseKeywords = [
-//     "real estate news",
-//     "property updates",
-//     "India real estate",
-//   ];
-//   const locationKeywords = (whatsNewData.locations || []).map(
-//     (loc) => `real estate news in ${loc}`
-//   );
-//   const categoryKeywords = (whatsNewData.categories || []).map(
-//     (cat) => `${cat} updates`
-//   );
-//   const keywords =
-//     seo.keywords && seo.keywords.length > 0
-//       ? seo.keywords
-//       : [...new Set([...baseKeywords, ...locationKeywords, ...categoryKeywords])];
-
-//   // Structured data for rich snippets
-//   const structuredData = {
-//     "@context": "https://schema.org",
-//     "@type": "NewsArticle",
-//     headline: whatsNewData.title,
-//     description: whatsNewData.summary,
-//     image: whatsNewData.imageUrl,
-//     url: seo.canonicalUrl || `https://www.indrealty.org/whats-new/${slug}`,
-//     datePublished: new Date().toISOString(),
-//     dateModified: new Date().toISOString(),
-//     author: {
-//       "@type": "Organization",
-//       name: "IndRealty",
-//     },
-//   };
-
-//   return {
-//     metaTitle:
-//       seo.metaTitle || whatsNewData.metaTitle || `${whatsNewData.title} | Latest Updates | IndRealty`,
-//     metaDescription:
-//       seo.metaDescription || whatsNewData.metaDescription || `${whatsNewData.summary}`,
-//     slug,
-//     keywords,
-//     ogTitle: seo.ogTitle || whatsNewData.ogTitle || whatsNewData.title,
-//     ogDescription: seo.ogDescription || whatsNewData.ogDescription || whatsNewData.summary,
-//     ogImage: seo.ogImage || whatsNewData.ogImage || whatsNewData.imageUrl,
-//     twitterCard: seo.twitterCard || "summary_large_image",
-//     canonicalUrl: seo.canonicalUrl || whatsNewData.canonicalUrl || `https://www.indrealty.org/whats-new/${slug}`,
-//     structuredData,
-//   };
-// };
-
-// // Create a new whats new listing
-// const createWhatsNew = async (req, res) => {
-//   try {
-//     const user = await User.findOne({ username: req.body.author });
-//     if (!user || !user.isAdmin) {
-//       return res.status(403).json({ error: "Admin access required" });
-//     }
-
-//     // Handle both file upload and direct URL
-//     let imageUrl;
-//     if (req.file) {
-//       imageUrl = `/public/uploads/${req.file.filename}`;
-//     } else if (req.body.imageUrl) {
-//       imageUrl = req.body.imageUrl;
-//     } else {
-//       return res.status(400).json({ error: "Either image file or imageUrl is required" });
-//     }
-
-//     const seoData = generateSeoData(req.body);
-
-//     const newWhatsNew = new WhatsNew({
-//       pid: uuidv4(),
-//       author: user._id,
-//       title: req.body.title,
-//       summary: req.body.summary,
-//       description: req.body.description,
-//       imageUrl,
-//       locations: Array.isArray(req.body.locations) ? req.body.locations : [req.body.locations],
-//       categories: Array.isArray(req.body.categories) ? req.body.categories : [req.body.categories],
-//       seo: seoData,
-//     });
-
-//     await newWhatsNew.save();
-
-//     res.status(201).json({
-//       success: true,
-//       message: "WhatsNew created successfully",
-//       whatsNew: newWhatsNew,
-//     });
-//   } catch (error) {
-//     if (error.code === 11000) {
-//       if (error.keyPattern["seo.slug"]) {
-//         return res.status(400).json({
-//           success: false,
-//           error: "Slug already exists. Please modify the title or provide a custom slug.",
-//         });
-//       }
-//       if (error.keyPattern.pid) {
-//         return res.status(400).json({
-//           success: false,
-//           error: "Duplicate WhatsNew ID. Please try again.",
-//         });
-//       }
-//     }
-//     res.status(400).json({ success: false, error: error.message });
-//   }
-// };
-
 const WhatsNew = require("../models/WhatsNew");
 const { v4: uuidv4 } = require("uuid");
 const User = require("../models/User");
@@ -345,15 +220,62 @@ const updateWhatsNewSeo = async (req, res) => {
 };
 
 // Get all whats new listings
+// const getAllWhatsNew = async (req, res) => {
+//   try {
+//     const { isTopWhatsNew } = req.query;
+//     const filter = isTopWhatsNew ? { isTopWhatsNew: true } : {};
+
+//     const whatsNew = await WhatsNew.find(filter)
+//       .select('title imageUrl createdAt seo.slug locations categories description')
+//       .lean()
+//       .sort({ createdAt: -1 });
+
+//     // Optimize response
+//     const optimizedWhatsNew = whatsNew.map(doc => ({
+//       _id: doc._id,
+//       title: doc.title,
+//       imageUrl: doc.imageUrl,
+//       createdAt: doc.createdAt,
+//       seo: { slug: doc.seo.slug },
+//       locations: Array.isArray(doc.locations) ? doc.locations : [doc.locations].filter(Boolean),
+//       categories: Array.isArray(doc.categories) ? doc.categories : [doc.categories].filter(Boolean),
+//       description: doc.description
+//     }));
+
+//     res.status(200).json({ whatsNew: optimizedWhatsNew });
+//   } catch (error) {
+//     res.status(500).json({ error: error.message });
+//   }
+// };
+
 const getAllWhatsNew = async (req, res) => {
   try {
-    const { isTopWhatsNew } = req.query;
+    const { isTopWhatsNew, search } = req.query;
     const filter = isTopWhatsNew ? { isTopWhatsNew: true } : {};
 
-    const whatsNew = await WhatsNew.find(filter)
+    // Build query with search functionality
+    let query = WhatsNew.find(filter)
       .select('title imageUrl createdAt seo.slug locations categories description')
-      .lean()
-      .sort({ createdAt: -1 });
+      .lean();
+
+    // Add search functionality
+    if (search) {
+      const searchRegex = new RegExp(search, 'i');
+      query.where({
+        $or: [
+          { title: { $regex: searchRegex } },
+          { summary: { $regex: searchRegex } },
+          { description: { $regex: searchRegex } },
+          { 'seo.metaTitle': { $regex: searchRegex } },
+          { 'seo.metaDescription': { $regex: searchRegex } },
+          { 'seo.keywords': { $regex: searchRegex } },
+          { locations: { $regex: searchRegex } },
+          { categories: { $regex: searchRegex } }
+        ]
+      });
+    }
+
+    const whatsNew = await query.sort({ createdAt: -1 });
 
     // Optimize response
     const optimizedWhatsNew = whatsNew.map(doc => ({

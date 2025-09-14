@@ -11,6 +11,7 @@ const propertyRoutes = require("./routes/propertyRoutes");
 const investmentRoutes = require("./routes/investmentRoutes");
 const whatsNewRoutes = require("./routes/whatsNewRoutes");
 const builderReviewRoutes = require("./routes/builderReviewRoutes");
+const searchRoutes = require("./routes/searchRoutes"); // Add this line
 const connectDB = require("./config/db");
 require("dotenv").config();
 const compression = require("compression");
@@ -81,6 +82,7 @@ app.use("/api", investmentRoutes);
 app.use("/api", whatsNewRoutes);
 app.use("/api", builderReviewRoutes);
 app.use("/api", require("./routes/topPostsRoutes"));
+app.use("/api", searchRoutes); // Add this line
 
 app.post("/api/upload", upload.single("image"), (req, res) => {
   if (!req.file) {
